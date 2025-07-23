@@ -25,7 +25,7 @@ M.setup = function(self, _opts)
 	buffer_tracker:setup()
 
 	-- Keymaps
-	vim.keymap.set("n", "<c-f>", function()
+	vim.keymap.set("n", ";", function()
 		-- Get buffers in MRU order
 		local mru_buffers = buffer_tracker.get_mru_buffers()
 		window:toggle(mru_buffers)

@@ -15,7 +15,14 @@ M.render = function(self, buffers)
 	local lines = {}
 	for _, buffer in ipairs(buffers) do
 		local line = buffer:render()
-		table.insert(lines, "  " .. line)
+
+		if buffer:is_current() then
+			line = "▶ " .. line
+		else
+			line = "  " .. line
+		end
+
+		table.insert(lines, line)
 	end
 	vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines or {})
 end

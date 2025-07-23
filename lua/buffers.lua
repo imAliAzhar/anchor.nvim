@@ -16,7 +16,7 @@ function M.Buffer:new(bufnr)
 
 	o.bufnr = bufnr
 	o.path = vim.api.nvim_buf_get_name(bufnr)
-	o.name = vim.fn.fnamemodify(o.path, ":t")
+	o.name = M.get_name(o.path)
 
 	return o
 end
@@ -25,6 +25,12 @@ end
 ---@return string
 function M.Buffer:render()
 	return self.name
+end
+
+---Check if this buffer is currently focused
+---@return boolean
+function M.Buffer:is_current()
+	return self.bufnr == vim.api.nvim_get_current_buf()
 end
 
 M.get_buffers = function()
@@ -50,6 +56,17 @@ end
 ---@return boolean
 M.is_valid_and_listed = function(bufnr)
 	return vim.api.nvim_buf_is_valid(bufnr) and vim.fn.buflisted(bufnr) == 1
+end
+
+---Get the display name for a buffer
+---@param path string The buffer's file path
+---@return string
+M.get_name = function(path)
+	if path == "" then
+		return "[No Name]"
+	else
+		return vim.fn.fnamemodify(path, ":t")
+	end
 end
 
 return M

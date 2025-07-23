@@ -23,7 +23,7 @@ M.get_mru_buffers = function()
 		if buffers_module.is_valid_and_listed(buffer.bufnr) then
 			-- Refresh buffer info in case path/name changed
 			buffer.path = vim.api.nvim_buf_get_name(buffer.bufnr)
-			buffer.name = vim.fn.fnamemodify(buffer.path, ":t")
+			buffer.name = buffers_module.get_name(buffer.path)
 			table.insert(valid_buffers, buffer)
 		else
 			M.buffer_mru:remove(buffer)
