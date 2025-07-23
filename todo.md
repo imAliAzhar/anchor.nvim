@@ -1,0 +1,4 @@
+- figure out how to only target "real" buffers
+- is there better way to chord trigger key?
+- is the chording done right?
+- how to discard any key that breaks the chord?
