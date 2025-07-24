@@ -52,7 +52,7 @@ M.show = function(self, buffers)
 	self.buf = vim.api.nvim_create_buf(false, true)
 
 	self:render(buffers)
-	
+
 	-- Automatically focus the second buffer if available
 	if #buffers >= 2 then
 		local second_buffer = buffers[2]
@@ -88,6 +88,17 @@ M.show = function(self, buffers)
 	-- Apply custom highlights to the window
 	vim.api.nvim_set_option_value("winhl", "Normal:AnchorNormal,FloatBorder:AnchorBorder", { win = self.win })
 
+	-- Create autocmd to close window on insert mode
+	self.autocmd_group = vim.api.nvim_create_augroup("AnchorWindow", { clear = true })
+	vim.api.nvim_create_autocmd("InsertEnter", {
+		group = self.autocmd_group,
+		callback = function()
+			if self.win then
+				self:hide()
+			end
+		end,
+	})
+
 	-- Activate custom keymaps with callbacks
 	keymaps:activate({
 		focus_next = function()
@@ -105,6 +116,12 @@ end
 M.hide = function(self)
 	vim.api.nvim_win_close(self.win, false)
 	self.win = nil
+
+	-- Clean up autocmd group
+	if self.autocmd_group then
+		vim.api.nvim_del_augroup_by_id(self.autocmd_group)
+		self.autocmd_group = nil
+	end
 
 	keymaps:deactivate()
 end
