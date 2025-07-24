@@ -33,6 +33,29 @@ M.get_mru_buffers = function()
 	return valid_buffers
 end
 
+---Track all existing buffers
+local function track_all_existing_buffers()
+	local all_buffers = buffers_module.get_buffers()
+	local current_buffer = nil
+
+	if all_buffers then
+		-- Track all buffers except the current one
+		local current_bufnr = vim.api.nvim_get_current_buf()
+		for _, buffer in ipairs(all_buffers) do
+			if buffer.bufnr ~= current_bufnr then
+				M.track_buffer(buffer)
+			else
+				current_buffer = buffer
+			end
+		end
+
+		-- Track current buffer last so it's most recent
+		if current_buffer then
+			M.track_buffer(current_buffer)
+		end
+	end
+end
+
 M.setup = function()
 	local group = vim.api.nvim_create_augroup("AnchorBufferTracker", { clear = true })
 
@@ -52,12 +75,16 @@ M.setup = function()
 		end,
 	})
 
-	-- Track current buffer on startup
-	local current_bufnr = vim.api.nvim_get_current_buf()
-	if buffers_module.is_valid_and_listed(current_bufnr) then
-		local buffer = Buffer:new(current_bufnr)
-		M.track_buffer(buffer)
-	end
+	-- Track all existing buffers on startup
+	track_all_existing_buffers()
+
+	-- Also track buffers after session loads
+	vim.api.nvim_create_autocmd("SessionLoadPost", {
+		group = group,
+		callback = function()
+			track_all_existing_buffers()
+		end,
+	})
 end
 
 return M
