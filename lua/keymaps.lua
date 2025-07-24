@@ -21,7 +21,7 @@ end
 local function restore_keymap(mode, key, original)
 	if original then
 		local opts = {
-			noremap = not original.noremap == 0,
+			noremap = original.noremap == 1,
 			silent = original.silent == 1,
 			expr = original.expr == 1,
 			nowait = original.nowait == 1,
@@ -54,6 +54,8 @@ M.activate = function(self, callbacks)
 				vim.keymap.set("n", key, self.callbacks.hide, { noremap = true, silent = true })
 			elseif action == "focus_next" and self.callbacks.focus_next then
 				vim.keymap.set("n", key, self.callbacks.focus_next, { noremap = true, silent = true })
+			elseif action == "focus_previous" and self.callbacks.focus_previous then
+				vim.keymap.set("n", key, self.callbacks.focus_previous, { noremap = true, silent = true })
 			end
 		end
 	end

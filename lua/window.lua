@@ -2,6 +2,10 @@ local keymaps = require("keymaps")
 
 local M = {}
 
+-- State for tracking buffers
+M.buffers = {}
+M.current_index = 2
+
 --- Setup
 --- @param opts table
 M.setup = function(self, opts)
@@ -35,9 +39,30 @@ M.show = function(self, buffers)
 		return
 	end
 
+	-- Store buffers and find current buffer index
+	self.buffers = buffers
+	self.current_index = 1
+	for i, buffer in ipairs(buffers) do
+		if buffer:is_current() then
+			self.current_index = i
+			break
+		end
+	end
+
 	self.buf = vim.api.nvim_create_buf(false, true)
 
 	self:render(buffers)
+	
+	-- Automatically focus the second buffer if available
+	if #buffers >= 2 then
+		local second_buffer = buffers[2]
+		if second_buffer then
+			second_buffer:focus()
+			self.current_index = 2
+			-- Re-render to update the indicator
+			self:render(buffers)
+		end
+	end
 
 	-- Get the total screen dimensions
 	local total_lines = vim.o.lines -- Total screen lines (including command bar and status bar)
@@ -65,11 +90,14 @@ M.show = function(self, buffers)
 
 	-- Activate custom keymaps with callbacks
 	keymaps:activate({
+		focus_next = function()
+			self:focus_next()
+		end,
 		hide = function()
 			self:hide()
 		end,
-		focus_next = function()
-			-- TODO: Implement focus_next functionality
+		focus_previous = function()
+			self:focus_previous()
 		end,
 	})
 end
@@ -79,6 +107,45 @@ M.hide = function(self)
 	self.win = nil
 
 	keymaps:deactivate()
+end
+
+M.focus_next = function(self)
+	if not self.buffers or #self.buffers == 0 then
+		return
+	end
+
+	-- Move to next buffer (with wrap-around)
+	self.current_index = self.current_index % #self.buffers + 1
+
+	-- Switch to the next buffer
+	local next_buffer = self.buffers[self.current_index]
+	if next_buffer then
+		next_buffer:focus()
+
+		-- Re-render to update the current buffer indicator
+		self:render(self.buffers)
+	end
+end
+
+M.focus_previous = function(self)
+	if not self.buffers or #self.buffers == 0 then
+		return
+	end
+
+	-- Move to previous buffer (with wrap-around)
+	self.current_index = self.current_index - 1
+	if self.current_index < 1 then
+		self.current_index = #self.buffers
+	end
+
+	-- Switch to the previous buffer
+	local prev_buffer = self.buffers[self.current_index]
+	if prev_buffer then
+		prev_buffer:focus()
+
+		-- Re-render to update the current buffer indicator
+		self:render(self.buffers)
+	end
 end
 
 M.toggle = function(self, lines)

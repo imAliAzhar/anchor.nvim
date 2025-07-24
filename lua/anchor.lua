@@ -1,14 +1,14 @@
 local window = require("window")
 local state = require("state")
-local buffers = require("buffers")
 local buffer_tracker = require("buffer_tracker")
 
 local M = {}
 
 local default_opts = {
 	keymaps = {
-		hide = "j",
-		focus_next = "k",
+		hide = ";",
+		focus_next = "j",
+		focus_previous = "k",
 	},
 
 	render_row = function(file_path)
@@ -28,7 +28,7 @@ M.setup = function(self, _opts)
 	vim.keymap.set("n", ";", function()
 		-- Get buffers in MRU order
 		local mru_buffers = buffer_tracker.get_mru_buffers()
-		window:toggle(mru_buffers)
+		window:show(mru_buffers)
 	end, { noremap = true, silent = true })
 
 	-- vim.keymap.set("n", opts.jump, function()

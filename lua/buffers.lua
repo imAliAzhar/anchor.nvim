@@ -33,6 +33,11 @@ function M.Buffer:is_current()
 	return self.bufnr == vim.api.nvim_get_current_buf()
 end
 
+---Focus this buffer
+function M.Buffer:focus()
+	vim.api.nvim_set_current_buf(self.bufnr)
+end
+
 M.get_buffers = function()
 	local bufnrs = vim.tbl_filter(M.is_valid_and_listed, vim.api.nvim_list_bufs())
 
