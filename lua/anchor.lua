@@ -7,9 +7,8 @@ local M = {}
 
 local default_opts = {
 	keymaps = {
-		default = true,
-		trigger = "<c-f>",
-		jump = "a",
+		hide = "j",
+		focus_next = "k",
 	},
 
 	render_row = function(file_path)
@@ -18,7 +17,8 @@ local default_opts = {
 }
 
 M.setup = function(self, _opts)
-	local opts = _opts or default_opts
+	-- Deep merge options with defaults
+	local opts = vim.tbl_deep_extend("force", default_opts, _opts or {})
 
 	window:setup(opts)
 	state:setup(opts)

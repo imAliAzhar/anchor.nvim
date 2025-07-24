@@ -1,3 +1,5 @@
+local keymaps = require("keymaps")
+
 local M = {}
 
 --- Setup
@@ -5,10 +7,11 @@ local M = {}
 M.setup = function(self, opts)
 	self.opts = opts
 
-	-- Set up default highlights
 	local bg = opts.bg or "#1e1e2e"
 	vim.api.nvim_set_hl(0, "AnchorNormal", { bg = bg, fg = opts.fg or "#cdd6f4" })
 	vim.api.nvim_set_hl(0, "AnchorBorder", { fg = bg })
+
+	keymaps:setup(opts)
 end
 
 M.render = function(self, buffers)
@@ -59,11 +62,23 @@ M.show = function(self, buffers)
 
 	-- Apply custom highlights to the window
 	vim.api.nvim_set_option_value("winhl", "Normal:AnchorNormal,FloatBorder:AnchorBorder", { win = self.win })
+
+	-- Activate custom keymaps with callbacks
+	keymaps:activate({
+		hide = function()
+			self:hide()
+		end,
+		focus_next = function()
+			-- TODO: Implement focus_next functionality
+		end,
+	})
 end
 
 M.hide = function(self)
 	vim.api.nvim_win_close(self.win, false)
 	self.win = nil
+
+	keymaps:deactivate()
 end
 
 M.toggle = function(self, lines)
