@@ -56,6 +56,8 @@ M.activate = function(self, callbacks)
 				vim.keymap.set("n", key, self.callbacks.focus_next, { noremap = true, silent = true })
 			elseif action == "focus_previous" and self.callbacks.focus_previous then
 				vim.keymap.set("n", key, self.callbacks.focus_previous, { noremap = true, silent = true })
+			elseif action == "open_search" and self.callbacks.open_search then
+				vim.keymap.set("n", key, self.callbacks.open_search, { noremap = true, silent = true })
 			end
 		end
 	end

@@ -110,6 +110,14 @@ M.show = function(self, buffers)
 		focus_previous = function()
 			self:focus_previous()
 		end,
+		open_search = function()
+			self:hide()
+			require("telescope").extensions.smart_open.smart_open({
+				disable_devicons = true,
+				initial_mode = "insert",
+				cwd_only = true,
+			})
+		end,
 	})
 end
 
@@ -171,6 +179,43 @@ M.toggle = function(self, lines)
 	else
 		self:show(lines)
 	end
+end
+
+M.refresh = function(self)
+	if not self.win then
+		return
+	end
+
+	local buffer_tracker = require("buffer_tracker")
+	local mru_buffers = buffer_tracker.get_mru_buffers()
+
+	-- Update stored buffers
+	self.buffers = mru_buffers
+
+	-- Check if current buffer still exists
+	if self.current_index > #self.buffers then
+		self.current_index = math.max(1, #self.buffers)
+	end
+
+	-- If the currently focused buffer was deleted, focus the next available one
+	local current_bufnr = vim.api.nvim_get_current_buf()
+	local found_current = false
+	for i, buffer in ipairs(self.buffers) do
+		if buffer.bufnr == current_bufnr then
+			self.current_index = i
+			found_current = true
+			break
+		end
+	end
+
+	-- If no buffers left, close the window
+	if #self.buffers == 0 then
+		self:hide()
+		return
+	end
+
+	-- Re-render with updated buffer list
+	self:render(self.buffers)
 end
 
 return M

@@ -9,6 +9,7 @@ local default_opts = {
 		hide = ";",
 		focus_next = "j",
 		focus_previous = "k",
+		open_search = "i",
 	},
 
 	render_row = function(file_path)
@@ -22,7 +23,7 @@ M.setup = function(self, _opts)
 
 	window:setup(opts)
 	state:setup(opts)
-	buffer_tracker:setup()
+	buffer_tracker.setup(window)
 
 	-- Keymaps
 	vim.keymap.set("n", ";", function()
