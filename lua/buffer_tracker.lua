@@ -14,6 +14,12 @@ M.track_buffer = function(buffer)
 	M.buffer_mru:add(buffer)
 end
 
+---Track a buffer in MRU order
+---@param bufnr number Buffer number to remove
+M.remove_buffer = function(bufnr)
+	M.buffer_mru:remove(bufnr)
+end
+
 ---Get all buffers in MRU order
 ---@return Buffer[] Array of valid Buffer objects
 M.get_mru_buffers = function()
@@ -27,7 +33,7 @@ M.get_mru_buffers = function()
 			buffer.name = buffers_module.get_name(buffer.path)
 			table.insert(valid_buffers, buffer)
 		else
-			M.buffer_mru:remove(buffer)
+			M.buffer_mru:remove(buffer.bufnr)
 		end
 	end
 
@@ -72,8 +78,7 @@ M.setup = function(window)
 	vim.api.nvim_create_autocmd("BufDelete", {
 		group = group,
 		callback = function(args)
-			local buffer = Buffer:new(args.buf)
-			M.buffer_mru:remove(buffer)
+			M.remove_buffer(args.buf)
 
 			-- Refresh the window if it's open
 			if window_instance then

@@ -55,20 +55,12 @@ function M.MRU:get_most_recent()
 	return self.items[1]
 end
 
----Remove a buffer
----@param item Buffer Buffer object to remove (compares by bufnr)
+---Remove a buffer by buffer number
+---@param bufnr number Buffer number to remove
 ---@return boolean True if buffer was removed
-function M.MRU:remove(item)
+function M.MRU:remove(bufnr)
 	for i, existing in ipairs(self.items) do
-		-- For Buffer objects, compare by bufnr
-		local is_same = false
-		if type(existing) == "table" and type(item) == "table" and existing.bufnr and item.bufnr then
-			is_same = existing.bufnr == item.bufnr
-		else
-			is_same = existing == item
-		end
-
-		if is_same then
+		if existing.bufnr == bufnr then
 			table.remove(self.items, i)
 			return true
 		end

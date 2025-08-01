@@ -6,10 +6,11 @@ local M = {}
 
 local default_opts = {
 	keymaps = {
-		hide = ";",
-		focus_next = "j",
-		focus_previous = "k",
-		open_search = "i",
+		hide = {"j", "k"},
+		focus_next = "<Leader>bn",
+		focus_previous = "<Leader>bp",
+
+		-- open_search = "i",
 	},
 
 	render_row = function(file_path)
@@ -26,7 +27,7 @@ M.setup = function(self, _opts)
 	buffer_tracker.setup(window)
 
 	-- Keymaps
-	vim.keymap.set("n", ";", function()
+	vim.keymap.set("n", "<Leader>bn", function()
 		-- Get buffers in MRU order
 		local mru_buffers = buffer_tracker.get_mru_buffers()
 		window:show(mru_buffers)

@@ -35,7 +35,9 @@ end
 
 ---Focus this buffer
 function M.Buffer:focus()
-	vim.api.nvim_set_current_buf(self.bufnr)
+	if vim.api.nvim_buf_is_valid(self.bufnr) then
+		vim.api.nvim_set_current_buf(self.bufnr)
+	end
 end
 
 M.get_buffers = function()

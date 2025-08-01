@@ -1,4 +1,5 @@
 local keymaps = require("keymaps")
+local Buffer = require("buffers").Buffer
 
 local M = {}
 
@@ -20,10 +21,12 @@ end
 
 M.render = function(self, buffers)
 	local lines = {}
-	for _, buffer in ipairs(buffers) do
+	for i, buffer in ipairs(buffers) do
 		local line = buffer:render()
 
-		if buffer:is_current() then
+		-- Show arrow for the selected buffer (by index) OR the current buffer
+		-- if i == self.current_index or buffer:is_current() then
+		if i == self.current_index then
 			line = "▶ " .. line
 		else
 			line = "  " .. line
@@ -187,35 +190,43 @@ M.refresh = function(self)
 	end
 
 	local buffer_tracker = require("buffer_tracker")
-	local mru_buffers = buffer_tracker.get_mru_buffers()
-
-	-- Update stored buffers
-	self.buffers = mru_buffers
-
-	-- Check if current buffer still exists
-	if self.current_index > #self.buffers then
-		self.current_index = math.max(1, #self.buffers)
-	end
-
-	-- If the currently focused buffer was deleted, focus the next available one
-	local current_bufnr = vim.api.nvim_get_current_buf()
-	local found_current = false
-	for i, buffer in ipairs(self.buffers) do
-		if buffer.bufnr == current_bufnr then
-			self.current_index = i
-			found_current = true
-			break
-		end
-	end
+	local buffers = buffer_tracker.get_mru_buffers()
 
 	-- If no buffers left, close the window
-	if #self.buffers == 0 then
+	if #buffers == 0 then
 		self:hide()
 		return
 	end
 
+	-- Update stored buffers
+	self.buffers = buffers
+
+	-- Find the current Neovim buffer in our list
+	local current_bufnr = vim.api.nvim_get_current_buf()
+	local found_current = false
+
+	if vim.api.nvim_buf_is_valid(current_bufnr) then
+		for i, buffer in ipairs(buffers) do
+			if buffer.bufnr == current_bufnr then
+				self.current_index = i
+				found_current = true
+				break
+			end
+		end
+	end
+
+	-- If current buffer was deleted or not in list, maintain index position
+	if not found_current then
+		-- Ensure index is within bounds
+		if self.current_index > #buffers then
+			self.current_index = #buffers
+		elseif self.current_index < 1 then
+			self.current_index = 1
+		end
+	end
+
 	-- Re-render with updated buffer list
-	self:render(self.buffers)
+	self:render(buffers)
 end
 
 return M

@@ -44,20 +44,25 @@ M.activate = function(self, callbacks)
 	self.callbacks = callbacks or {}
 
 	-- Set up keymaps based on configuration
-	for action, key in pairs(self.keymaps) do
-		if key and key ~= "" then
-			-- Save original keymap
-			self.original_keymaps[key] = save_keymap("n", key)
+	for action, keys in pairs(self.keymaps) do
+		-- Convert single key to array for uniform handling
+		local key_list = type(keys) == "table" and keys or { keys }
+		
+		for _, key in ipairs(key_list) do
+			if key and key ~= "" then
+				-- Save original keymap
+				self.original_keymaps[key] = save_keymap("n", key)
 
-			-- Set custom keymap based on action
-			if action == "hide" and self.callbacks.hide then
-				vim.keymap.set("n", key, self.callbacks.hide, { noremap = true, silent = true })
-			elseif action == "focus_next" and self.callbacks.focus_next then
-				vim.keymap.set("n", key, self.callbacks.focus_next, { noremap = true, silent = true })
-			elseif action == "focus_previous" and self.callbacks.focus_previous then
-				vim.keymap.set("n", key, self.callbacks.focus_previous, { noremap = true, silent = true })
-			elseif action == "open_search" and self.callbacks.open_search then
-				vim.keymap.set("n", key, self.callbacks.open_search, { noremap = true, silent = true })
+				-- Set custom keymap based on action
+				if action == "hide" and self.callbacks.hide then
+					vim.keymap.set("n", key, self.callbacks.hide, { noremap = true, silent = true })
+				elseif action == "focus_next" and self.callbacks.focus_next then
+					vim.keymap.set("n", key, self.callbacks.focus_next, { noremap = true, silent = true })
+				elseif action == "focus_previous" and self.callbacks.focus_previous then
+					vim.keymap.set("n", key, self.callbacks.focus_previous, { noremap = true, silent = true })
+				elseif action == "open_search" and self.callbacks.open_search then
+					vim.keymap.set("n", key, self.callbacks.open_search, { noremap = true, silent = true })
+				end
 			end
 		end
 	end
