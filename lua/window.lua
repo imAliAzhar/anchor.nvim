@@ -56,17 +56,6 @@ M.show = function(self, buffers)
 
 	self:render(buffers)
 
-	-- Automatically focus the second buffer if available
-	if #buffers >= 2 then
-		local second_buffer = buffers[2]
-		if second_buffer then
-			second_buffer:focus()
-			self.current_index = 2
-			-- Re-render to update the indicator
-			self:render(buffers)
-		end
-	end
-
 	-- Get the total screen dimensions
 	local total_lines = vim.o.lines -- Total screen lines (including command bar and status bar)
 	local total_cols = vim.o.columns -- Total screen width
