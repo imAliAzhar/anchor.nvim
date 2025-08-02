@@ -51,38 +51,34 @@ local function handle_semicolon()
 	-- Window is not open, continue with counter logic
 	semicolon_count = semicolon_count + 1
 
-	-- Reset window timer if it exists
+	-- Always set/reset the window timer on every semicolon press
 	if window_timer then
 		vim.fn.timer_stop(window_timer)
-		window_timer = nil
 	end
-
-	-- Only start window timer on first semicolon
-	if semicolon_count == 1 then
-		window_timer = vim.fn.timer_start(200, function()
-			-- Show window with MRU buffers
-			local mru_buffers = buffer_tracker.get_mru_buffers()
-			if #mru_buffers > 0 then
-				window:show(mru_buffers)
-				-- Set the initial selection based on semicolon count
-				window.current_index = math.min(semicolon_count + 1, #mru_buffers)
-				window:render(mru_buffers)
-			end
-		end)
-	else
-		-- Window is already shown or will be shown, update selection
-		if window.win then
-			local mru_buffers = buffer_tracker.get_mru_buffers()
+	
+	window_timer = vim.fn.timer_start(200, function()
+		-- Show window with MRU buffers
+		local mru_buffers = buffer_tracker.get_mru_buffers()
+		if #mru_buffers > 0 then
+			window:show(mru_buffers)
+			-- Set the initial selection based on semicolon count
 			window.current_index = math.min(semicolon_count + 1, #mru_buffers)
 			window:render(mru_buffers)
 		end
-	end
+		window_timer = nil
+	end)
 
 	-- No automatic reset timer - only reset on 'a' press or other actions
 end
 
 -- Handle 'a' press to switch buffers
 local function handle_buffer_switch()
+	-- Cancel window timer if it's running (user pressed 'a' within 200ms)
+	if window_timer then
+		vim.fn.timer_stop(window_timer)
+		window_timer = nil
+	end
+
 	-- If window is open, use the window's current selection
 	if window.win then
 		local target_buffer = window.buffers[window.current_index]
