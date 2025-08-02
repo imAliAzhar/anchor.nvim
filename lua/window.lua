@@ -134,14 +134,8 @@ M.focus_next = function(self)
 	-- Move to next buffer (with wrap-around)
 	self.current_index = self.current_index % #self.buffers + 1
 
-	-- Switch to the next buffer
-	local next_buffer = self.buffers[self.current_index]
-	if next_buffer then
-		next_buffer:focus()
-
-		-- Re-render to update the current buffer indicator
-		self:render(self.buffers)
-	end
+	-- Re-render to update the current buffer indicator
+	self:render(self.buffers)
 end
 
 M.focus_previous = function(self)
@@ -155,14 +149,8 @@ M.focus_previous = function(self)
 		self.current_index = #self.buffers
 	end
 
-	-- Switch to the previous buffer
-	local prev_buffer = self.buffers[self.current_index]
-	if prev_buffer then
-		prev_buffer:focus()
-
-		-- Re-render to update the current buffer indicator
-		self:render(self.buffers)
-	end
+	-- Re-render to update the current buffer indicator
+	self:render(self.buffers)
 end
 
 M.toggle = function(self, lines)

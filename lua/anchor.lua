@@ -11,9 +11,9 @@ local window_timer = nil
 
 local default_opts = {
 	keymaps = {
-		hide = { "j", "k" },
-		focus_next = "<Leader>bn",
-		focus_previous = "<Leader>bp",
+		hide = "q",
+		focus_next = {"j", ";"},
+		focus_previous = "k",
 
 		-- open_search = "i",
 	},
@@ -42,6 +42,13 @@ end
 
 -- Handle semicolon press
 local function handle_semicolon()
+	-- If window is already open, semicolon acts as focus_next
+	if window.win then
+		window:focus_next()
+		return
+	end
+
+	-- Window is not open, continue with counter logic
 	semicolon_count = semicolon_count + 1
 
 	-- Reset window timer if it exists
@@ -76,14 +83,22 @@ end
 
 -- Handle 'a' press to switch buffers
 local function handle_buffer_switch()
-	if semicolon_count == 0 then
-		-- If no semicolons were pressed, do nothing
+	-- If window is open, use the window's current selection
+	if window.win then
+		local target_buffer = window.buffers[window.current_index]
+		if target_buffer then
+			target_buffer:focus()
+		end
+		-- Hide window and reset
+		window:hide()
+		reset_semicolon_count()
 		return
 	end
 
-	-- Hide window if it's open
-	if window.win then
-		window:hide()
+	-- Window not open, use semicolon count
+	if semicolon_count == 0 then
+		-- If no semicolons were pressed, do nothing
+		return
 	end
 
 	-- Get buffers in MRU order
