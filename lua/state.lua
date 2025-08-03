@@ -3,6 +3,11 @@ local log = function(...) end
 
 local M = {}
 
+-- State for semicolon counter
+M.semicolon_count = 0
+M.window_timer = nil
+M.semicolon_timer = nil
+
 M.recursive_count = 0
 
 M.increment_count = function(self)
@@ -40,17 +45,6 @@ M.trigger_anchor = function(self)
 	end
 
 	M:increment_count()
-end
-
-M.select_tab = function()
-	if M.recursive_count ~= 0 then
-		log("Trigger count: " .. M.recursive_count)
-		M:reset_count()
-	else
-		-- Default behavior (fallback)
-		log("Default behavior")
-		vim.api.nvim_feedkeys("a", "n", true)
-	end
 end
 
 return M

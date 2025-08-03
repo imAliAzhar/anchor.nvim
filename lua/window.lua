@@ -1,5 +1,5 @@
+local state = require("state")
 local keymaps = require("keymaps")
-local Buffer = require("buffers").Buffer
 
 local M = {}
 
@@ -102,13 +102,8 @@ M.show = function(self, buffers)
 		focus_previous = function()
 			self:focus_previous()
 		end,
-		open_search = function()
-			self:hide()
-			require("telescope").extensions.smart_open.smart_open({
-				disable_devicons = true,
-				initial_mode = "insert",
-				cwd_only = true,
-			})
+		confirm = function()
+			self:handle_buffer_switch()
 		end,
 	})
 end
@@ -204,6 +199,69 @@ M.refresh = function(self)
 
 	-- Re-render with updated buffer list
 	self:render(buffers)
+end
+
+-- Reset semicolon counter
+M.reset_semicolon_count = function(self)
+	state.semicolon_count = 0
+	if state.semicolon_timer then
+		vim.fn.timer_stop(state.semicolon_timer)
+		state.semicolon_timer = nil
+	end
+	if state.window_timer then
+		vim.fn.timer_stop(state.window_timer)
+		state.window_timer = nil
+	end
+	-- Hide window if it's open
+	if self.win then
+		self:hide()
+	end
+end
+
+-- Handle 'a' press to switch buffers
+M.handle_buffer_switch = function(self)
+	-- Cancel window timer if it's running (user pressed 'a' within 200ms)
+	if state.window_timer then
+		vim.fn.timer_stop(state.window_timer)
+		state.window_timer = nil
+	end
+
+	-- If window is open, use the window's current selection
+	if self.win then
+		local target_buffer = self.buffers[self.current_index]
+		if target_buffer then
+			target_buffer:focus()
+		end
+		-- Hide window and reset
+		self:hide()
+		self:reset_semicolon_count()
+		return
+	end
+
+	-- Window not open, use semicolon count
+	if state.semicolon_count == 0 then
+		-- If no semicolons were pressed, do nothing
+		return
+	end
+
+	-- Get buffers in MRU order
+	local buffer_tracker = require("buffer_tracker")
+	local mru_buffers = buffer_tracker.get_mru_buffers()
+
+	-- Switch to the buffer at position semicolon_count
+	-- Note: semicolon_count = 1 means the most recent buffer (excluding current)
+	-- Since MRU list includes current buffer at position 1, we use semicolon_count + 1
+	local target_index = state.semicolon_count + 1
+
+	if target_index <= #mru_buffers then
+		local target_buffer = mru_buffers[target_index]
+		if target_buffer then
+			target_buffer:focus()
+		end
+	end
+
+	-- Reset the counter after switching
+	self:reset_semicolon_count()
 end
 
 return M
