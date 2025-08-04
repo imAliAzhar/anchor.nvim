@@ -1,11 +1,11 @@
+local utils = require("utils")
 local state = require("state")
-local keymaps = require("keymaps")
+
+local SHOW_WINDOW_TIMEOUT = 300
 
 local M = {}
 
--- State for tracking buffers
-M.buffers = {}
-M.current_index = 2
+M.window_timer = nil
 
 --- Setup
 --- @param opts table
@@ -15,18 +15,24 @@ M.setup = function(self, opts)
 	local bg = opts.bg or "#1e1e2e"
 	vim.api.nvim_set_hl(0, "AnchorNormal", { bg = bg, fg = opts.fg or "#cdd6f4" })
 	vim.api.nvim_set_hl(0, "AnchorBorder", { fg = bg })
-
-	keymaps:setup(opts)
 end
 
-M.render = function(self, buffers)
+function M:setup_window_timer()
+	self.window_timer = vim.fn.timer_start(SHOW_WINDOW_TIMEOUT, function()
+		self:show()
+	end)
+end
+
+M.render = function(self)
+	if not self.buf then
+		return
+	end
+
 	local lines = {}
-	for i, buffer in ipairs(buffers) do
+	for i, buffer in ipairs(state:get_buffers()) do
 		local line = buffer:render()
 
-		-- Show arrow for the selected buffer (by index) OR the current buffer
-		-- if i == self.current_index or buffer:is_current() then
-		if i == self.current_index then
+		if i == state:get_current_index() then
 			line = "▶ " .. line
 		else
 			line = "  " .. line
@@ -34,34 +40,51 @@ M.render = function(self, buffers)
 
 		table.insert(lines, line)
 	end
+
 	vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines or {})
 end
 
-M.show = function(self, buffers)
-	if self.win then
-		return
-	end
-
-	-- Store buffers and find current buffer index
-	self.buffers = buffers
-	self.current_index = 1
-	for i, buffer in ipairs(buffers) do
-		if buffer:is_current() then
-			self.current_index = i
-			break
-		end
+M.show = function(self)
+	if self.buf then
+		utils.assert("attemp to create a new buffer when one exists already")
 	end
 
 	self.buf = vim.api.nvim_create_buf(false, true)
+	self:render()
 
-	self:render(buffers)
+	if self.win then
+		utils.assert("attemp to create a new window when one exists already")
+	end
 
+	local win_opts = self:get_window_opts(#state:get_buffers())
+	self.win = vim.api.nvim_open_win(self.buf, false, win_opts)
+
+	vim.api.nvim_set_option_value("winhl", "Normal:AnchorNormal,FloatBorder:AnchorBorder", { win = self.win })
+end
+
+function M:close_window()
+	if self.window_timer then
+		vim.fn.timer_stop(self.window_timer)
+	end
+
+	if self.win then
+		vim.api.nvim_win_close(self.win, false)
+	end
+	self.win = nil
+
+	if self.buf then
+		vim.api.nvim_buf_delete(self.buf, { force = true })
+	end
+	self.buf = nil
+end
+
+function M:get_window_opts(lines_count)
 	-- Get the total screen dimensions
 	local total_lines = vim.o.lines -- Total screen lines (including command bar and status bar)
 	local total_cols = vim.o.columns -- Total screen width
 
 	-- Calculate the row and column for bottom-right positioning
-	local win_height = 1 + #buffers -- Height of the floating window
+	local win_height = 1 + lines_count -- Height of the floating window
 	local win_width = 30 -- Width of the floating window
 
 	-- Define the floating window options
@@ -74,194 +97,7 @@ M.show = function(self, buffers)
 		style = "minimal",
 	}
 
-	-- Open the floating window
-	self.win = vim.api.nvim_open_win(self.buf, false, win_opts)
-
-	-- Apply custom highlights to the window
-	vim.api.nvim_set_option_value("winhl", "Normal:AnchorNormal,FloatBorder:AnchorBorder", { win = self.win })
-
-	-- Create autocmd to close window on insert mode
-	self.autocmd_group = vim.api.nvim_create_augroup("AnchorWindow", { clear = true })
-	vim.api.nvim_create_autocmd("InsertEnter", {
-		group = self.autocmd_group,
-		callback = function()
-			if self.win then
-				self:hide()
-			end
-		end,
-	})
-
-	-- Activate custom keymaps with callbacks
-	keymaps:activate({
-		focus_next = function()
-			self:focus_next()
-		end,
-		hide = function()
-			self:hide()
-		end,
-		focus_previous = function()
-			self:focus_previous()
-		end,
-		confirm = function()
-			self:handle_buffer_switch()
-		end,
-	})
-end
-
-M.hide = function(self)
-	vim.api.nvim_win_close(self.win, false)
-	self.win = nil
-
-	-- Clean up autocmd group
-	if self.autocmd_group then
-		vim.api.nvim_del_augroup_by_id(self.autocmd_group)
-		self.autocmd_group = nil
-	end
-
-	keymaps:deactivate()
-end
-
-M.focus_next = function(self)
-	if not self.buffers or #self.buffers == 0 then
-		return
-	end
-
-	-- Move to next buffer (with wrap-around)
-	self.current_index = self.current_index % #self.buffers + 1
-
-	-- Re-render to update the current buffer indicator
-	self:render(self.buffers)
-end
-
-M.focus_previous = function(self)
-	if not self.buffers or #self.buffers == 0 then
-		return
-	end
-
-	-- Move to previous buffer (with wrap-around)
-	self.current_index = self.current_index - 1
-	if self.current_index < 1 then
-		self.current_index = #self.buffers
-	end
-
-	-- Re-render to update the current buffer indicator
-	self:render(self.buffers)
-end
-
-M.toggle = function(self, lines)
-	if self.win then
-		self:hide()
-	else
-		self:show(lines)
-	end
-end
-
-M.refresh = function(self)
-	if not self.win then
-		return
-	end
-
-	local buffer_tracker = require("buffer_tracker")
-	local buffers = buffer_tracker.get_mru_buffers()
-
-	-- If no buffers left, close the window
-	if #buffers == 0 then
-		self:hide()
-		return
-	end
-
-	-- Update stored buffers
-	self.buffers = buffers
-
-	-- Find the current Neovim buffer in our list
-	local current_bufnr = vim.api.nvim_get_current_buf()
-	local found_current = false
-
-	if vim.api.nvim_buf_is_valid(current_bufnr) then
-		for i, buffer in ipairs(buffers) do
-			if buffer.bufnr == current_bufnr then
-				self.current_index = i
-				found_current = true
-				break
-			end
-		end
-	end
-
-	-- If current buffer was deleted or not in list, maintain index position
-	if not found_current then
-		-- Ensure index is within bounds
-		if self.current_index > #buffers then
-			self.current_index = #buffers
-		elseif self.current_index < 1 then
-			self.current_index = 1
-		end
-	end
-
-	-- Re-render with updated buffer list
-	self:render(buffers)
-end
-
--- Reset semicolon counter
-M.reset_semicolon_count = function(self)
-	state.semicolon_count = 0
-	if state.semicolon_timer then
-		vim.fn.timer_stop(state.semicolon_timer)
-		state.semicolon_timer = nil
-	end
-	if state.window_timer then
-		vim.fn.timer_stop(state.window_timer)
-		state.window_timer = nil
-	end
-	-- Hide window if it's open
-	if self.win then
-		self:hide()
-	end
-end
-
--- Handle 'a' press to switch buffers
-M.handle_buffer_switch = function(self)
-	-- Cancel window timer if it's running (user pressed 'a' within 200ms)
-	if state.window_timer then
-		vim.fn.timer_stop(state.window_timer)
-		state.window_timer = nil
-	end
-
-	-- If window is open, use the window's current selection
-	if self.win then
-		local target_buffer = self.buffers[self.current_index]
-		if target_buffer then
-			target_buffer:focus()
-		end
-		-- Hide window and reset
-		self:hide()
-		self:reset_semicolon_count()
-		return
-	end
-
-	-- Window not open, use semicolon count
-	if state.semicolon_count == 0 then
-		-- If no semicolons were pressed, do nothing
-		return
-	end
-
-	-- Get buffers in MRU order
-	local buffer_tracker = require("buffer_tracker")
-	local mru_buffers = buffer_tracker.get_mru_buffers()
-
-	-- Switch to the buffer at position semicolon_count
-	-- Note: semicolon_count = 1 means the most recent buffer (excluding current)
-	-- Since MRU list includes current buffer at position 1, we use semicolon_count + 1
-	local target_index = state.semicolon_count + 1
-
-	if target_index <= #mru_buffers then
-		local target_buffer = mru_buffers[target_index]
-		if target_buffer then
-			target_buffer:focus()
-		end
-	end
-
-	-- Reset the counter after switching
-	self:reset_semicolon_count()
+	return win_opts
 end
 
 return M

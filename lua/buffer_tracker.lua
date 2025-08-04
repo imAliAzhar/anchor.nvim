@@ -3,7 +3,6 @@ local Buffer = buffers_module.Buffer
 
 local M = {}
 local mru = require("mru")
-local window_instance = nil
 
 ---@type MRU
 M.buffer_mru = mru.MRU:new()
@@ -63,8 +62,7 @@ local function track_all_existing_buffers()
 	end
 end
 
-M.setup = function(window)
-	window_instance = window
+M.setup = function()
 	local group = vim.api.nvim_create_augroup("AnchorBufferTracker", { clear = true })
 
 	vim.api.nvim_create_autocmd("BufEnter", {
@@ -79,11 +77,6 @@ M.setup = function(window)
 		group = group,
 		callback = function(args)
 			M.remove_buffer(args.buf)
-
-			-- Refresh the window if it's open
-			if window_instance then
-				window_instance:refresh()
-			end
 		end,
 	})
 
