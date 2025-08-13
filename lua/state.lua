@@ -81,4 +81,21 @@ function M:select_current_buffer()
 	self:deactivate()
 end
 
+function M:delete_current_buffer()
+	local buffer = self.buffers[self.current_index]
+
+	if not buffer or not buffer.bufnr then
+		return
+	end
+
+	for i, b in ipairs(self.buffers) do
+		if b == buffer then
+			table.remove(self.buffers, i)
+		end
+	end
+
+	buffer_tracker.remove_buffer(buffer.bufnr)
+	vim.api.nvim_buf_delete(buffer.bufnr, { force = true })
+end
+
 return M
