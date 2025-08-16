@@ -67,7 +67,7 @@ function M:close_window()
 		vim.fn.timer_stop(self.window_timer)
 	end
 
-	if self.win then
+	if self.win and vim.api.nvim_win_is_valid(self.win) then
 		vim.api.nvim_win_close(self.win, false)
 	end
 	self.win = nil
