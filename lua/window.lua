@@ -24,6 +24,11 @@ function M:setup_window_timer()
 end
 
 M.render = function(self)
+	if state.active == false then
+		self:close_window()
+		return
+	end
+
 	if not self.buf then
 		return
 	end

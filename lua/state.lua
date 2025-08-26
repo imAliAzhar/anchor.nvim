@@ -73,11 +73,10 @@ end
 function M:select_current_buffer()
 	local selected_buffer = self.buffers[self.current_index]
 
-	if not selected_buffer then
-		utils.assert("current_index points to invalid item in buffer list")
+	if selected_buffer then
+		selected_buffer:focus()
 	end
 
-	selected_buffer:focus()
 	self:deactivate()
 end
 
@@ -96,6 +95,14 @@ function M:delete_current_buffer()
 
 	buffer_tracker.remove_buffer(buffer.bufnr)
 	vim.api.nvim_buf_delete(buffer.bufnr, { force = true })
+
+	if self.current_index > #self.buffers then
+		self.current_index = #self.buffers
+	end
+
+	if #self.buffers == 0 then
+		self:deactivate()
+	end
 end
 
 return M

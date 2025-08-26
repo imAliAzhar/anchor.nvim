@@ -12,6 +12,7 @@ local default_opts = {
 		focus_next = "j",
 		focus_previous = "k",
 		confirm = "a",
+		delete = "w",
 	},
 }
 
@@ -30,9 +31,13 @@ local focus_previous = function()
 	window:render()
 end
 local hide = function()
-	window:close_window()
 	state:deactivate()
+	window:render()
 	keymaps:restore()
+end
+local delete = function()
+	state:delete_current_buffer()
+	window:render()
 end
 
 local function activate_or_next()
@@ -41,6 +46,7 @@ local function activate_or_next()
 		keymaps:bind_action("focus_previous", focus_previous)
 		keymaps:bind_action("confirm", confirm)
 		keymaps:bind_action("hide", hide)
+		keymaps:bind_action("delete", delete)
 
 		state:setup_state()
 		window:setup_window_timer()
@@ -60,7 +66,5 @@ M.setup = function(_, _opts)
 
 	keymaps:bind_action("activate", activate_or_next)
 end
-
-M:setup()
 
 return M
